@@ -1,0 +1,31 @@
+Network Science Project
+
+
+1. Chicago Crime Dataset:
+	a. https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-present/ijzp-q8t2
+
+	b. Note: We should first try to build a network for one year. Or even just for some weeks.
+
+	c. Additionally we have the many datasets. I want to explore the following datasets.
+
+2. Ridership
+
+3. Police Stations
+
+4. Libraries
+
+5. Building Violations
+
+6. 311 Service requests - Street Lights - One Out and All Out
+	https://data.cityofchicago.org/Service-Requests/311-Service-Requests-Street-Lights-All-Out/zuxi-7xem
+
+6. 311 Service Requests - Vacant and Abandoned Buildings Reported
+
+7. Census Data 
+	https://data.cityofchicago.org/Health-Human-Services/Census-Data-Selected-socioeconomic-indicators-in-C/kn9c-c2s2
+
+8. Chicago fire department data:
+	https://data.cityofchicago.org/FOIA/FOIA-Request-Log-Fire/un3c-ixb7
+
+6. Weather Data: 
+	https://data.cityofchicago.org/Parks-Recreation/Beach-Weather-Stations-Automated-Sensors-2016-Humi/7edu-s3u7

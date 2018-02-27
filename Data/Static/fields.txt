@@ -1,0 +1,22 @@
+ID:10514462
+Case Number:HZ256372
+Date:01/01/2015 12:00:00 AM
+Block:073XX S EXCHANGE AVE
+IUCR:0281
+Primary Type:CRIM SEXUAL ASSAULT
+Description:NON-AGGRAVATED
+Location Description:NURSING HOME/RETIREMENT HOME
+Arrest:false
+Domestic:false
+Beat:0334
+District:003
+Ward:7
+Community Area:43
+FBI Code:02
+X Coordinate:
+Y Coordinate:
+Year:2015
+Updated On:05/10/2016 03:56:50 PM
+Latitude:
+Longitude:
+Location:

@@ -1,0 +1,10 @@
+\contentsline {section}{\numberline {1}Introduction}{1}
+\contentsline {section}{\numberline {2}Objective}{1}
+\contentsline {section}{\numberline {3}Approach}{1}
+\contentsline {subsection}{\numberline {3.1}Building network}{1}
+\contentsline {paragraph}{}{1}
+\contentsline {paragraph}{}{1}
+\contentsline {subsection}{\numberline {3.2}Methods to predict next crime pattern}{1}
+\contentsline {subsection}{\numberline {3.3}Progress}{2}
+\contentsline {subsection}{\numberline {3.4}Timeline}{2}
+\contentsline {section}{Appendices}{3}
