@@ -25,7 +25,7 @@ class Build_Network:
             G = net.get_network ()
         """
         self.new = 1
-        return 
+        return
 
     def add_net (self, comm_dict, color_attr=None, other_attr=None):
         """Initialize the build network by storing the given dictionary. """

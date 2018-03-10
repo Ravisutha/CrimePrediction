@@ -30,13 +30,14 @@ class Regression:
         
         #Output list
         self.result = {}
+        self.error = {}
 
         #Initialize the lists
         sim_arr = {}
         attr_arr = {}
 
         #Number of similar community data
-        sim_num = 7
+        sim_num = 5
 
         #Loop through years 2011-2015 and get similar communities
         for year in range (2011, 2016):
@@ -54,6 +55,7 @@ class Regression:
         #for month in range (1, 13):
         for month in range (1):
             self.result[month] = []
+            self.error[month] = []
 
             for comm_no in range (1, 78):
                 matrix = []
@@ -94,6 +96,7 @@ class Regression:
                 print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
 
                 self.result[month].append ([t_output, out])
+                self.error[month].append((abs(t_output - out) / t_output))
 
         return (self.result)
     
@@ -232,6 +235,7 @@ class Regression:
 
         for month in self.result:
             result = np.array(self.result[month])
+            print("Result: ", sum(self.error[month])) 
         
             np.savetxt (path[month], result)
 
@@ -276,10 +280,11 @@ class Regression:
             title = "Number of crimes for the month December in the 77 communities"
 
         #print (title)
+        print("Result: {}".format(sum(self.error[month])))
         plt.figure ()
-        print (communities)
-        print (actual)
-        print (predict)
+        #print (communities)
+        #print (actual)
+        #print (predict)
         plt.plot (communities, actual, label="Actual number of crimes")
         plt.plot (communities, predict, label="Predicted number of crimes")
         #plt.title (title)
@@ -298,7 +303,6 @@ def main ():
 
     reg = Regression ()
     reg.linear_regression ()
-    #reg.print_results(path)
 
     #for i in range (1, 13):
     for i in range (1):
