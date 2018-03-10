@@ -43,8 +43,8 @@ class Regression:
         for year in range (2011, 2016):
             sim_arr[year] = {}
             attr_arr[year] = {}
-            #for month in range (1, 13):
-            for month in range (1):
+            for month in range (1, 13):
+            #for month in range (1):
                 #Get similarity matrix for the years 2011, 2012, 2013, 2014
                 [arr, attr] = self.get_sim_matrix (year, month)
                 
@@ -52,8 +52,8 @@ class Regression:
                 sim_arr[year][month] = arr
                 attr_arr[year][month] = attr
         #Loop over all year and months. Predict for 2015
-        #for month in range (1, 13):
-        for month in range (1):
+        for month in range (1, 13):
+        #for month in range (1):
             self.result[month] = []
             self.error[month] = []
 
@@ -95,7 +95,7 @@ class Regression:
                 #print ("\t(Actual, Predicted) = ({}, {})".format (t_output, clf.predict (predict_)))
                 print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
 
-                self.result[month].append ([t_output, out])
+                self.result[month].append ([float (t_output), float (out)])
                 self.error[month].append((abs(t_output - out) / t_output))
 
         return (self.result)
@@ -233,11 +233,18 @@ class Regression:
 
         np.set_printoptions(suppress=True)
 
+        print (self.result)
         for month in self.result:
+            print ("Month: %s"%month)
             result = np.array(self.result[month])
-            print("Result: ", sum(self.error[month])) 
+            #result = self.result[month]
+            print (result.shape)
+            print (self.result[month])
+            #print("Result: ", sum(self.error[month])) 
+            np.squeeze (result)
+            print (result.shape)
         
-            np.savetxt (path[month], result)
+            np.savetxt (path[month], self.result[month])
 
     def plot_results (self, path, month=1):
         """ Plots the graph of actual and predicted crimes for given month"""
@@ -251,8 +258,8 @@ class Regression:
         actual = []
         predict = []
         for out in result:
-            actual.append (out[0][0])
-            predict.append (out[1][0])
+            actual.append (out[0])
+            predict.append (out[1])
 
         if (month == 1):
             title = "Number of crimes for the month January in the 77 communities"
@@ -291,8 +298,8 @@ class Regression:
         plt.xlabel("Cummunities")
         plt.ylabel ("Number of crimes")
         plt.legend ()
-        plt.show ()
         plt.savefig (path)
+    plt.show ()
                 
 def main ():
     """ Program starts executing. """
@@ -303,9 +310,10 @@ def main ():
 
     reg = Regression ()
     reg.linear_regression ()
+    reg.print_results (path)
 
-    #for i in range (1, 13):
-    for i in range (1):
+    for i in range (1, 13):
+    #for i in range (1):
         print("Month: {}".format(i))
         reg.plot_results ("../../Data/Total_Data/Output/plot_{}.png".format(i), i)
 
