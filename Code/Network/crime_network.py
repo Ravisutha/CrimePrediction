@@ -149,10 +149,13 @@ class Crime_Network:
                     comm = int (float (row[14]))
                 except ValueError:
                     continue
-                
+
+                # Some garbage community
                 if (not (comm in self.community)):
                     continue
 
+                # Create new crime type if not present (Dictionary of
+                # dictionary)
                 if (not (c_type in self.community[comm])):
                     self.community[comm][c_type] = 1
                 else:

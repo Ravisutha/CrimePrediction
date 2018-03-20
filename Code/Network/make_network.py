@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 #Author :   Ravisutha Sakrepatna Srinivasamurthy
 #Project:   Analysis of Chicago Crime Data
 
@@ -106,6 +104,7 @@ class Build_Network:
         norm = Normalize ()
         self.attr = {}
 
+        print ("------------For year : {} and for month: {}-------------".format (year, month))
         print ("\t1. Creating network")
 
         #Get community and crime dictionary (Code: 10000)

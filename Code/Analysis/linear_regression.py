@@ -8,12 +8,14 @@ Created on Thu Nov 23 17:07:35 2017
 
 import pickle
 import pandas as pd
+from pandas import Series
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import normalize
 from scipy.interpolate import *
 from sklearn.linear_model import LinearRegression
+from statsmodels.tsa.ar_model import AR
 from similarity import FindSimilarity
 import sys
 from path import Path
@@ -51,6 +53,7 @@ class Regression:
                 #Stack similarity matrix for all months for a given year
                 sim_arr[year][month] = arr
                 attr_arr[year][month] = attr
+
         #Loop over all year and months. Predict for 2015
         for month in range (1, 13):
         #for month in range (1):
@@ -99,7 +102,97 @@ class Regression:
                 self.error[month].append((abs(t_output - out) / t_output))
 
         return (self.result)
-    
+
+    def _get_data (self):
+        """ Get data 
+        Input Parameters:
+            None
+        Returns:
+            Tuple of similarity matirx and attributes
+        """
+
+        #Initialize the lists
+        self.sim_arr = {}
+        self.attr_arr = {}
+
+        #Loop through years 2011-2015 and get similar communities
+        for year in range (2011, 2016):
+            self.sim_arr[year] = {}
+            self.attr_arr[year] = {}
+
+            for month in range (1, 13):
+                #Get similarity matrix for the years 2011, 2012, 2013, 2014
+                [arr, attr] = self.get_sim_matrix (year, month)
+
+                #Stack similarity matrix for all months for a given year
+                self.sim_arr[year][month] = arr
+                self.attr_arr[year][month] = attr
+
+        return (self.sim_arr, self.attr_arr)
+
+    def _auto_regression_input (self):
+        """ Find the optimal lag using auto-correlation. 
+        Prameter:
+            year: Year for which auto-correlation is required.
+        Output :
+            Returns a dictionary of list containing optimal lag for each month
+        """
+
+        auto_corr_train = {}
+        auto_corr_test = {}
+
+        # Build just output data
+        for comm in range (1, 78):
+            auto_corr_train[comm] = {}
+            auto_corr_test[comm] = {}
+            for month in range (1, 13):
+                auto_corr_train[comm][month] = []
+                auto_corr_test[comm][month] = []
+
+                # Loop through all years and collect crime data
+                for year in range (2011, 2015):
+                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm]))
+
+                year = 2015
+                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm]))
+
+        return (auto_corr_train, auto_corr_test)
+
+    def auto_regression (self):
+        """ Returns auto regression output. """
+
+        # Find best lag using auto correlation
+        self._get_data ()
+
+        # Find the optimal lag
+        (train, test) = self._auto_regression_input ()
+        print ("Train:")
+        print (train)
+        print ("Test")
+        print (test)
+
+        predictions = {}
+
+        # Train
+        for community in range (1, 78):
+            predictions[community] = {}
+            for month in range (1, 13):
+                train1 = np.array (train[community][month])
+                train1 = train1.reshape (-1, 1)
+                test1 = test[community][month]
+
+                # Autoregression
+                model = AR(train1)
+                max_lag = 1
+                model_fit = model.fit(max_lag)
+                #print('Lag: %s' % model_fit.k_ar)
+                #print('Coefficients: %s' % model_fit.params)
+
+                # Test
+                predictions[community][month] = model_fit.predict(start=len(train1), end=len(train1)+len(test1)-1, dynamic=False)
+
+                print('predicted={}, expected={}'.format(predictions[community][month], test1))
+
     def get_sim_matrix (self, year, month=1):
         """ Return similarity matrix for a given year. """
 
@@ -115,28 +208,33 @@ class Regression:
 
         #Sort and return n similar communities
         index_no = comm_no - 1
-        req_sim = arr[index_no, :] 
+        req_sim = arr[index_no, :]
 
         sorted_arr = np.sort (req_sim)[::-1]
         #print (sorted_arr)
         index = np.argsort (req_sim)[::-1]
         #print (index)
-            
+
         for i, idex in enumerate (index):
             index[i] = idex + 1
 
         return (index[0:n])
 
     def process_attributes (self, index, attr):
-        """ Convert attributes as inputs to linear regression. """
-           
+        """ Convert attributes as inputs to linear regression.
+        Input parametes:
+            index: Community list for which parameters are needed
+            attr: Attribute dictionary
+        Returns:
+            List of attributes
+        """
+
         mat = []
         output = []
         for itr, i in enumerate (index):
             comm = i
-            #print ("Community: {}".format (comm))
 
-            #Crime Types (Homicide)
+            #Crime Types (Total crimes)
             if (itr == 0):
                 crime = self.add_weights (attr["crime"][comm])
                 output.append (crime)
@@ -218,7 +316,7 @@ class Regression:
     def add_weights (self, in_dict):
         """ Adds weight for the given dictionary. """
 
-        weights = 0 
+        weights = 0
         for code in in_dict:
             try:
                 weights += float (in_dict[code])
@@ -227,7 +325,7 @@ class Regression:
                 continue
 
         return weights
-    
+
     def print_results (self, path):
         """ Print the output to a file. """
 
@@ -243,7 +341,7 @@ class Regression:
             #print("Result: ", sum(self.error[month])) 
             np.squeeze (result)
             print (result.shape)
-        
+
             np.savetxt (path[month], self.result[month])
 
     def plot_results (self, path, month=1):
@@ -300,17 +398,18 @@ class Regression:
         plt.legend ()
         plt.savefig (path)
     plt.show ()
-                
+
 def main ():
     """ Program starts executing. """
-    
+
     path = {}
     for month in range (1, 13):
         path[month] = "../../Data/Total_Data/Output/predict_" + str(month) + ".csv"
 
     reg = Regression ()
-    reg.linear_regression ()
-    reg.print_results (path)
+    #reg.linear_regression ()
+    #reg.print_results (path)
+    reg.auto_regression ()
 
     for i in range (1, 13):
     #for i in range (1):
