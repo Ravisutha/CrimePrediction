@@ -11,6 +11,8 @@ import pandas as pd
 from pandas import Series
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
+from sklearn import svm
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import normalize
 from scipy.interpolate import *
@@ -161,7 +163,11 @@ class Regression:
     def auto_regression (self):
         """ Returns auto regression output. """
 
-        # Find best lag using auto correlation
+        #Output list
+        self.result = {}
+        self.error = {}
+
+        # Get data
         self._get_data ()
 
         # Find the optimal lag
@@ -171,12 +177,12 @@ class Regression:
         print ("Test")
         print (test)
 
-        predictions = {}
-
         # Train
-        for community in range (1, 78):
-            predictions[community] = {}
-            for month in range (1, 13):
+        for month in range (1, 13):
+            self.result[month] = []
+            self.error[month] = []
+
+            for community in range (1, 78):
                 train1 = np.array (train[community][month])
                 train1 = train1.reshape (-1, 1)
                 test1 = test[community][month]
@@ -189,9 +195,69 @@ class Regression:
                 #print('Coefficients: %s' % model_fit.params)
 
                 # Test
-                predictions[community][month] = model_fit.predict(start=len(train1), end=len(train1)+len(test1)-1, dynamic=False)
+                out = model_fit.predict(start=len(train1), end=len(train1)+len(test1)-1, dynamic=False)
+                t_output = test1
 
-                print('predicted={}, expected={}'.format(predictions[community][month], test1))
+                #print('predicted={}, expected={}'.format(predictions[community][month], test1))
+                self.result[month].append ([float (t_output[0]), float (out[0])])
+                self.error[month].append((abs(t_output - out) / t_output))
+
+    def regression_svr (self, sim_num=3):
+        """ Using libsvm in scklearn, preform regression. """
+
+        #Output list
+        self.result = {}
+        self.error = {}
+
+        # Get data
+        self._get_data ()
+
+        #Loop over all year and months. Predict for 2015
+        for month in range (1, 13):
+            self.result[month] = []
+            self.error[month] = []
+
+            for comm_no in range (1, 78):
+                matrix = []
+                output = []
+
+                for year in range (2011, 2015):
+                    arr = self.sim_arr[year][month]
+                    attr = self.attr_arr[year][month]
+
+                    #Get top two similar communities for this community
+                    index = self.n_similar_communities (sim_num, comm_no, arr)
+
+                    [temp_matrix, temp_output] = self.process_attributes (index, attr)
+                    matrix.append (temp_matrix)
+                    output.append (temp_output)
+
+                #Get the attributes for 2015
+                index = self.n_similar_communities (sim_num, comm_no, self.sim_arr[2015][month])
+                [test, t_output] = self.process_attributes (index, self.attr_arr[2015][month])
+
+                #Convet to np array
+                matrix = np.array (matrix)
+                output = np.array (output)
+
+                #Polynomial regression with degree 2
+                clf = svm.SVR ()
+                sc = MinMaxScaler(feature_range=(0, 1))
+                X_ = sc.fit_transform (matrix)
+
+                # Train
+                clf.fit (X_, output)
+
+                # Test
+                test = np.array (test, ndmin=2)
+                t_output = np.array (t_output, ndmin=2)
+                predict_ = sc.transform (test)
+
+                out = clf.predict (predict_)
+                print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
+
+                self.result[month].append ([float (t_output), float (out)])
+                self.error[month].append((abs(t_output - out) / t_output))
 
     def get_sim_matrix (self, year, month=1):
         """ Return similarity matrix for a given year. """
@@ -333,14 +399,14 @@ class Regression:
 
         print (self.result)
         for month in self.result:
-            print ("Month: %s"%month)
-            result = np.array(self.result[month])
+            #print ("Month: %s"%month)
+            #result = np.array(self.result[month])
             #result = self.result[month]
-            print (result.shape)
-            print (self.result[month])
+            #print (result.shape)
+            #print (self.result[month])
             #print("Result: ", sum(self.error[month])) 
-            np.squeeze (result)
-            print (result.shape)
+            #np.squeeze (result)
+            #print (result.shape)
 
             np.savetxt (path[month], self.result[month])
 
@@ -404,16 +470,18 @@ def main ():
 
     path = {}
     for month in range (1, 13):
-        path[month] = "../../Data/Total_Data/Output/predict_" + str(month) + ".csv"
+        path[month] = "../../Data/Total_Data/Output/Poly/predict_" + str(month) + ".csv"
 
     reg = Regression ()
-    #reg.linear_regression ()
-    #reg.print_results (path)
-    reg.auto_regression ()
+    reg.linear_regression ()
+    #reg.auto_regression ()
+    #reg.regression_svr ()
+    reg.print_results (path)
 
-    for i in range (1, 13):
+    #for i in range (1, 13):
     #for i in range (1):
-        print("Month: {}".format(i))
-        reg.plot_results ("../../Data/Total_Data/Output/plot_{}.png".format(i), i)
+    #    print("Month: {}".format(i))
+        #reg.plot_results ("../../Data/Total_Data/Output/plot_{}.png".format(i), i)
+        #reg.plot_results ("../../Data/Total_Data/Output/plot_{}.png".format(i), i)
 
 main ()
