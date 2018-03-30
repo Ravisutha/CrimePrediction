@@ -21,6 +21,7 @@ from statsmodels.tsa.ar_model import AR
 from similarity import FindSimilarity
 import sys
 from path import Path
+from crime_type_map import map_codes
 
 class Regression:
     """ Use Regression to predict next crime pattern. """
@@ -28,6 +29,7 @@ class Regression:
     def __init__ (self):
         
         self.once = 0
+        self.map_crime_types ()
     
     def linear_regression (self):
         """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
@@ -105,6 +107,13 @@ class Regression:
 
         return (self.result)
 
+    def map_crime_types (self):
+        """
+        Add all the weights related to the given primary crime type and return.
+        """
+
+        self.map_crime = map_codes ("../../Data/Static/IUCR.csv", 10000)
+
     def _get_data (self):
         """ Get data 
         Input Parameters:
@@ -153,10 +162,10 @@ class Regression:
 
                 # Loop through all years and collect crime data
                 for year in range (2011, 2015):
-                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm]))
+                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], "HOMICIDE"))
 
                 year = 2015
-                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm]))
+                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], "HOMICIDE"))
 
         return (auto_corr_train, auto_corr_test)
 
@@ -302,7 +311,7 @@ class Regression:
 
             #Crime Types (Total crimes)
             if (itr == 0):
-                crime = self.add_weights (attr["crime"][comm])
+                crime = self.add_weights (attr["crime"][comm], ["HOMICIDE", "ASSAULT", "BURGLARY"])
                 output.append (crime)
 
             #Number of Police Stations
@@ -379,16 +388,27 @@ class Regression:
 
         return ([mat, output])
 
-    def add_weights (self, in_dict):
+    def add_weights (self, in_dict, crime_types=["Full"]):
         """ Adds weight for the given dictionary. """
 
         weights = 0
-        for code in in_dict:
-            try:
-                weights += float (in_dict[code])
-            except ValueError:
-                #print ("Unknown value:", in_dict[code])
-                continue
+        
+        if (crime_types[0] == "Full"):
+            for code in in_dict:
+                try:
+                    weights += float (in_dict[code])
+                except ValueError:
+                    #print ("Unknown value:", in_dict[code])
+                    continue
+        else:
+            for crime_type in crime_types:
+                for code in self.map_crime[crime_type]:
+                    try:
+                        weights += float (in_dict[code])
+                    except ValueError:
+                        continue
+                    except KeyError:
+                        continue
 
         return weights
 
