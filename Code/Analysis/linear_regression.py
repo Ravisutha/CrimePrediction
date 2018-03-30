@@ -162,7 +162,7 @@ class Regression:
 
                 # Loop through all years and collect crime data
                 for year in range (2011, 2015):
-                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], "HOMICIDE"))
+                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["HOMICIDE"]))
 
                 year = 2015
                 auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], "HOMICIDE"))
