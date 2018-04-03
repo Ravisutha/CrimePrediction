@@ -162,10 +162,12 @@ class Regression:
 
                 # Loop through all years and collect crime data
                 for year in range (2011, 2015):
-                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["HOMICIDE"]))
+                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["HOMICIDE", "ASSAULT", "BURGLARY"]))
+                    #auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["FULL"]))
 
                 year = 2015
-                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], "HOMICIDE"))
+                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["HOMICIDE", "ASSAULT", "BURGLARY"]))
+                #auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["FULL"]))
 
         return (auto_corr_train, auto_corr_test)
 
@@ -181,10 +183,10 @@ class Regression:
 
         # Find the optimal lag
         (train, test) = self._auto_regression_input ()
-        print ("Train:")
-        print (train)
-        print ("Test")
-        print (test)
+        #print ("Train:")
+        #print (train)
+        #print ("Test")
+        #print (test)
 
         # Train
         for month in range (1, 13):
@@ -196,6 +198,15 @@ class Regression:
                 train1 = train1.reshape (-1, 1)
                 test1 = test[community][month]
 
+                print ("community:", community)
+                print ("month:", month)
+                print ("Train:")
+                print (train1)
+                print ("Test:")
+                print (test1)
+                print ("start", len(train1))
+                print ("end", len (train1) + len (test1) - 1)
+
                 # Autoregression
                 model = AR(train1)
                 max_lag = 1
@@ -204,7 +215,13 @@ class Regression:
                 #print('Coefficients: %s' % model_fit.params)
 
                 # Test
-                out = model_fit.predict(start=len(train1), end=len(train1)+len(test1)-1, dynamic=False)
+                try:
+                    out = model_fit.predict(start=len(train1), end=len(train1)+len(test1)-1, dynamic=False)
+                except ValueError:
+                    print ("Something went wrong")
+                    out = [train1[-1]]
+                    continue
+
                 t_output = test1
 
                 #print('predicted={}, expected={}'.format(predictions[community][month], test1))
@@ -393,7 +410,7 @@ class Regression:
 
         weights = 0
         
-        if (crime_types[0] == "Full"):
+        if (crime_types[0] == "FULL"):
             for code in in_dict:
                 try:
                     weights += float (in_dict[code])
@@ -490,11 +507,11 @@ def main ():
 
     path = {}
     for month in range (1, 13):
-        path[month] = "../../Data/Total_Data/Output/Poly/predict_" + str(month) + ".csv"
+        path[month] = "../../Data/Total_Data/Output/Auto_regression/predict_crimes" + str(month) + ".csv"
 
     reg = Regression ()
-    reg.linear_regression ()
-    #reg.auto_regression ()
+    #reg.linear_regression ()
+    reg.auto_regression ()
     #reg.regression_svr ()
     reg.print_results (path)
 
