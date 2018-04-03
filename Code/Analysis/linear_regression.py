@@ -6,6 +6,7 @@ Created on Thu Nov 23 17:07:35 2017
 @author: rsakrep
 """
 
+import os
 import pickle
 import pandas as pd
 from pandas import Series
@@ -22,14 +23,32 @@ from similarity import FindSimilarity
 import sys
 from path import Path
 from crime_type_map import map_codes
+import pickle
 
 class Regression:
     """ Use Regression to predict next crime pattern. """
     
-    def __init__ (self):
+    def __init__ (self, init_path, methods=["Poly"]):
         
         self.once = 0
+
+        # Get crime types
         self.map_crime_types ()
+
+        # Get data
+        self._get_data (pick=True)
+
+        # For each crime type, predict the number of crimes
+        for method in methods:
+            for crime_type in self.map_crime: 
+                if (method == "Poly"):
+                    self.linear_regression()
+                elif (method == "Auto"):
+                    self.auto_regression ()
+                else:
+                    self.regression_svr ()
+
+                self.print_results (init_path, method, crime_type)
     
     def linear_regression (self):
         """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
@@ -39,24 +58,29 @@ class Regression:
         self.error = {}
 
         #Initialize the lists
-        sim_arr = {}
-        attr_arr = {}
+        sim_arr = self.sim_arr
+        attr_arr = self.attr_arr
 
         #Number of similar community data
         sim_num = 5
 
-        #Loop through years 2011-2015 and get similar communities
-        for year in range (2011, 2016):
-            sim_arr[year] = {}
-            attr_arr[year] = {}
-            for month in range (1, 13):
-            #for month in range (1):
-                #Get similarity matrix for the years 2011, 2012, 2013, 2014
-                [arr, attr] = self.get_sim_matrix (year, month)
-                
-                #Stack similarity matrix for all months for a given year
-                sim_arr[year][month] = arr
-                attr_arr[year][month] = attr
+#        #Initialize the lists
+#        sim_arr = {}
+#        attr_arr = {}
+#
+#
+#        #Loop through years 2011-2015 and get similar communities
+#        for year in range (2011, 2016):
+#            sim_arr[year] = {}
+#            attr_arr[year] = {}
+#            for month in range (1, 13):
+#            #for month in range (1):
+#                #Get similarity matrix for the years 2011, 2012, 2013, 2014
+#                [arr, attr] = self.get_sim_matrix (year, month)
+#                
+#                #Stack similarity matrix for all months for a given year
+#                sim_arr[year][month] = arr
+#                attr_arr[year][month] = attr
 
         #Loop over all year and months. Predict for 2015
         for month in range (1, 13):
@@ -87,18 +111,32 @@ class Regression:
                 matrix = np.array (matrix)
                 output = np.array (output)
 
+                print ("Matrix shape: ", matrix.shape)
+                print ("Output shape: ", output.shape)
+
+                #Normalize
+                sc1 = MinMaxScaler(feature_range=(0, 1))
+                sc2 = MinMaxScaler(feature_range=(0, 1))
+                matrix = sc1.fit_transform (matrix)
+                output = sc2.fit_transform (output)
+
+
                 #Polynomial regression with degree 2
                 poly = PolynomialFeatures(degree=2)
                 X_ = poly.fit_transform (matrix)
 
+                # Train
                 clf = LinearRegression ()
                 clf.fit (X_, output)
 
                 test = np.array (test, ndmin=2)
+                print ("Test shape: ", test.shape)
+                test = sc1.transform (test)
                 t_output = np.array (t_output, ndmin=2)
                 predict_ = poly.fit_transform (test)
 
                 out = clf.predict (predict_)
+                out = sc2.inverse_transform (out)
                 #print ("\t(Actual, Predicted) = ({}, {})".format (t_output, clf.predict (predict_)))
                 print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
 
@@ -114,7 +152,7 @@ class Regression:
 
         self.map_crime = map_codes ("../../Data/Static/IUCR.csv", 10000)
 
-    def _get_data (self):
+    def _get_data (self, pick=True):
         """ Get data 
         Input Parameters:
             None
@@ -122,22 +160,30 @@ class Regression:
             Tuple of similarity matirx and attributes
         """
 
-        #Initialize the lists
-        self.sim_arr = {}
-        self.attr_arr = {}
+        if (pick == False):
+            #Initialize the lists
+            self.sim_arr = {}
+            self.attr_arr = {}
 
-        #Loop through years 2011-2015 and get similar communities
-        for year in range (2011, 2016):
-            self.sim_arr[year] = {}
-            self.attr_arr[year] = {}
+            #Loop through years 2011-2015 and get similar communities
+            for year in range (2011, 2016):
+                self.sim_arr[year] = {}
+                self.attr_arr[year] = {}
 
-            for month in range (1, 13):
-                #Get similarity matrix for the years 2011, 2012, 2013, 2014
-                [arr, attr] = self.get_sim_matrix (year, month)
+                for month in range (1, 13):
+                    #Get similarity matrix for the years 2011, 2012, 2013, 2014
+                    [arr, attr] = self.get_sim_matrix (year, month)
 
-                #Stack similarity matrix for all months for a given year
-                self.sim_arr[year][month] = arr
-                self.attr_arr[year][month] = attr
+                    #Stack similarity matrix for all months for a given year
+                    self.sim_arr[year][month] = arr
+                    self.attr_arr[year][month] = attr
+
+            pickle.dump (self.sim_arr, open( "sim_arr.p", "wb" ))
+            pickle.dump (self.attr_arr, open( "attr_arr.p", "wb" ))
+
+        else:
+            self.sim_arr = pickle.load (open( "sim_arr.p", "rb" ))
+            self.attr_arr = pickle.load (open( "attr_arr.p", "rb" ))
 
         return (self.sim_arr, self.attr_arr)
 
@@ -177,9 +223,6 @@ class Regression:
         #Output list
         self.result = {}
         self.error = {}
-
-        # Get data
-        self._get_data ()
 
         # Find the optimal lag
         (train, test) = self._auto_regression_input ()
@@ -429,8 +472,9 @@ class Regression:
 
         return weights
 
-    def print_results (self, path):
+    def print_results (self, init_path, method, crime_type):
         """ Print the output to a file. """
+
 
         np.set_printoptions(suppress=True)
 
@@ -445,7 +489,11 @@ class Regression:
             #np.squeeze (result)
             #print (result.shape)
 
-            np.savetxt (path[month], self.result[month])
+            path = init_path + method + "/" + crime_type
+            os.makedirs (path, exist_ok=True)
+            path = path + "/prediction_" + str (month) + ".csv"
+
+            np.savetxt (path, self.result[month])
 
     def plot_results (self, path, month=1):
         """ Plots the graph of actual and predicted crimes for given month"""
@@ -505,20 +553,12 @@ class Regression:
 def main ():
     """ Program starts executing. """
 
-    path = {}
-    for month in range (1, 13):
-        path[month] = "../../Data/Total_Data/Output/Auto_regression/predict_crimes" + str(month) + ".csv"
+    #method = ["Poly", "Auto", "SVR"]
+    #method = ["Auto", "SVR"]
+    method = ["Poly"]
+    init_path = "../../Data/Total_Data/Output/" 
 
-    reg = Regression ()
-    #reg.linear_regression ()
-    reg.auto_regression ()
-    #reg.regression_svr ()
-    reg.print_results (path)
-
-    #for i in range (1, 13):
-    #for i in range (1):
-    #    print("Month: {}".format(i))
-        #reg.plot_results ("../../Data/Total_Data/Output/plot_{}.png".format(i), i)
-        #reg.plot_results ("../../Data/Total_Data/Output/plot_{}.png".format(i), i)
+    for i in range (3):
+        reg = Regression (methods=method, init_path=init_path)
 
 main ()
