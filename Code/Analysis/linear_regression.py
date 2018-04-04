@@ -42,15 +42,15 @@ class Regression:
         for method in methods:
             for crime_type in self.map_crime: 
                 if (method == "Poly"):
-                    self.linear_regression()
+                    self.linear_regression([crime_type])
                 elif (method == "Auto"):
-                    self.auto_regression ()
+                    self.auto_regression ([crime_type])
                 else:
-                    self.regression_svr ()
+                    self.regression_svr ([crime_type])
 
                 self.print_results (init_path, method, crime_type)
     
-    def linear_regression (self):
+    def linear_regression (self, crime_type):
         """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
         
         #Output list
@@ -99,20 +99,17 @@ class Regression:
                     #Get top two similar communities for this community
                     index = self.n_similar_communities (sim_num, comm_no, arr)
 
-                    [temp_matrix, temp_output] = self.process_attributes (index, attr)
+                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=attr_arr[year], crime_type=crime_type)
                     matrix.append (temp_matrix)
                     output.append (temp_output)
 
                 #Get the attributes for 2015
                 index = self.n_similar_communities (sim_num, comm_no, sim_arr[2015][month])
-                [test, t_output] = self.process_attributes (index, attr_arr[2015][month])
+                [test, t_output] = self.process_attributes (index, attr_arr[2015][month], month=month, extra=attr_arr[2015], crime_type=crime_type)
 
                 #Convet to np array
                 matrix = np.array (matrix)
                 output = np.array (output)
-
-                print ("Matrix shape: ", matrix.shape)
-                print ("Output shape: ", output.shape)
 
                 #Normalize
                 sc1 = MinMaxScaler(feature_range=(0, 1))
@@ -130,7 +127,6 @@ class Regression:
                 clf.fit (X_, output)
 
                 test = np.array (test, ndmin=2)
-                print ("Test shape: ", test.shape)
                 test = sc1.transform (test)
                 t_output = np.array (t_output, ndmin=2)
                 predict_ = poly.fit_transform (test)
@@ -138,7 +134,7 @@ class Regression:
                 out = clf.predict (predict_)
                 out = sc2.inverse_transform (out)
                 #print ("\t(Actual, Predicted) = ({}, {})".format (t_output, clf.predict (predict_)))
-                print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
+                #print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
 
                 self.result[month].append ([float (t_output), float (out)])
                 self.error[month].append((abs(t_output - out) / t_output))
@@ -187,7 +183,7 @@ class Regression:
 
         return (self.sim_arr, self.attr_arr)
 
-    def _auto_regression_input (self):
+    def _auto_regression_input (self, crime_type):
         """ Find the optimal lag using auto-correlation. 
         Prameter:
             year: Year for which auto-correlation is required.
@@ -208,16 +204,16 @@ class Regression:
 
                 # Loop through all years and collect crime data
                 for year in range (2011, 2015):
-                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["HOMICIDE", "ASSAULT", "BURGLARY"]))
+                    auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], crime_type))
                     #auto_corr_train[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["FULL"]))
 
                 year = 2015
-                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["HOMICIDE", "ASSAULT", "BURGLARY"]))
+                auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], crime_type))
                 #auto_corr_test[comm][month].append (self.add_weights (self.attr_arr[year][month]["crime"][comm], ["FULL"]))
 
         return (auto_corr_train, auto_corr_test)
 
-    def auto_regression (self):
+    def auto_regression (self, crime_type):
         """ Returns auto regression output. """
 
         #Output list
@@ -225,11 +221,7 @@ class Regression:
         self.error = {}
 
         # Find the optimal lag
-        (train, test) = self._auto_regression_input ()
-        #print ("Train:")
-        #print (train)
-        #print ("Test")
-        #print (test)
+        (train, test) = self._auto_regression_input (crime_type)
 
         # Train
         for month in range (1, 13):
@@ -240,15 +232,6 @@ class Regression:
                 train1 = np.array (train[community][month])
                 train1 = train1.reshape (-1, 1)
                 test1 = test[community][month]
-
-                print ("community:", community)
-                print ("month:", month)
-                print ("Train:")
-                print (train1)
-                print ("Test:")
-                print (test1)
-                print ("start", len(train1))
-                print ("end", len (train1) + len (test1) - 1)
 
                 # Autoregression
                 model = AR(train1)
@@ -271,7 +254,7 @@ class Regression:
                 self.result[month].append ([float (t_output[0]), float (out[0])])
                 self.error[month].append((abs(t_output - out) / t_output))
 
-    def regression_svr (self, sim_num=3):
+    def regression_svr (self, crime_type, sim_num=3):
         """ Using libsvm in scklearn, preform regression. """
 
         #Output list
@@ -297,13 +280,13 @@ class Regression:
                     #Get top two similar communities for this community
                     index = self.n_similar_communities (sim_num, comm_no, arr)
 
-                    [temp_matrix, temp_output] = self.process_attributes (index, attr)
+                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=self.attr_arr[year], crime_type=crime_type)
                     matrix.append (temp_matrix)
                     output.append (temp_output)
 
                 #Get the attributes for 2015
                 index = self.n_similar_communities (sim_num, comm_no, self.sim_arr[2015][month])
-                [test, t_output] = self.process_attributes (index, self.attr_arr[2015][month])
+                [test, t_output] = self.process_attributes (index, self.attr_arr[2015][month], month=month, extra=self.attr_arr[2015], crime_type=crime_type)
 
                 #Convet to np array
                 matrix = np.array (matrix)
@@ -355,7 +338,7 @@ class Regression:
 
         return (index[0:n])
 
-    def process_attributes (self, index, attr):
+    def process_attributes (self, index, attr, month=-1, extra=False, crime_type=["HOMICIDE"]):
         """ Convert attributes as inputs to linear regression.
         Input parametes:
             index: Community list for which parameters are needed
@@ -371,8 +354,12 @@ class Regression:
 
             #Crime Types (Total crimes)
             if (itr == 0):
-                crime = self.add_weights (attr["crime"][comm], ["HOMICIDE", "ASSAULT", "BURGLARY"])
+                crime = self.add_weights (attr["crime"][comm], crime_type)
                 output.append (crime)
+
+                if (extra != False):
+                    for prev in range (1, month):
+                        mat.append (self.add_weights (extra[prev]["crime"][comm], crime_type))
 
             #Number of Police Stations
             try:
@@ -554,8 +541,8 @@ def main ():
     """ Program starts executing. """
 
     #method = ["Poly", "Auto", "SVR"]
-    #method = ["Auto", "SVR"]
-    method = ["Poly"]
+    method = ["Auto", "SVR"]
+    #method = ["Poly"]
     init_path = "../../Data/Total_Data/Output/" 
 
     for i in range (3):
