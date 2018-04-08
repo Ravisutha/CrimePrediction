@@ -574,8 +574,8 @@ def main ():
     #method = ["Poly", "Auto", "SVR"]
     #method = ["Auto", "SVR"]
     method = ["Poly"]
-    init_path = "../../Data/Total_Data/Output/" 
+    init_path = "../../Data/Total_Data/Output/"
 
-    reg = Regression (methods=method, init_path=init_path, save=True)
+    reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True)
 
 main ()
