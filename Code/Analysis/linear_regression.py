@@ -13,6 +13,7 @@ from pandas import Series
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.decomposition import PCA
 from sklearn import svm
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import normalize
@@ -28,7 +29,7 @@ import pickle
 class Regression:
     """ Use Regression to predict next crime pattern. """
     
-    def __init__ (self, init_path, methods=["Poly"]):
+    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True):
         
         self.once = 0
 
@@ -37,6 +38,12 @@ class Regression:
 
         # Get data
         self._get_data (pick=True)
+
+        # Decide on what to iterate
+        if crime_types != -1:
+            itr = crime_types
+        else:
+            itr = self.map_crime
 
         # For each crime type, predict the number of crimes
         for method in methods:
@@ -48,7 +55,8 @@ class Regression:
                 else:
                     self.regression_svr ([crime_type])
 
-                self.print_results (init_path, method, crime_type)
+                if save:
+                    self.print_results (init_path, method, crime_type)
     
     def linear_regression (self, crime_type):
         """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
@@ -62,7 +70,7 @@ class Regression:
         attr_arr = self.attr_arr
 
         #Number of similar community data
-        sim_num = 5
+        sim_num = 3
 
 #        #Initialize the lists
 #        sim_arr = {}
@@ -99,24 +107,31 @@ class Regression:
                     #Get top two similar communities for this community
                     index = self.n_similar_communities (sim_num, comm_no, arr)
 
-                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=attr_arr[year], crime_type=crime_type)
+                    #[temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=attr_arr[year], crime_type=crime_type)
+                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=-1, extra=attr_arr[year], crime_type=crime_type)
                     matrix.append (temp_matrix)
                     output.append (temp_output)
 
                 #Get the attributes for 2015
                 index = self.n_similar_communities (sim_num, comm_no, sim_arr[2015][month])
-                [test, t_output] = self.process_attributes (index, attr_arr[2015][month], month=month, extra=attr_arr[2015], crime_type=crime_type)
+                [test, t_output] = self.process_attributes (index, attr_arr[2015][month], month=-1, extra=attr_arr[2015], crime_type=crime_type)
+                #[test, t_output] = self.process_attributes (index, attr_arr[2015][month], month=month, extra=attr_arr[2015], crime_type=crime_type)
 
                 #Convet to np array
                 matrix = np.array (matrix)
                 output = np.array (output)
+                test = np.array (test, ndmin=2)
+                t_output = np.array (t_output, ndmin=2)
+
+                # Dimensionality reduction
+                #[matrix, test] = self.dimensionality_reduction (matrix, test, 5)
 
                 #Normalize
                 sc1 = MinMaxScaler(feature_range=(0, 1))
                 sc2 = MinMaxScaler(feature_range=(0, 1))
                 matrix = sc1.fit_transform (matrix)
+                test = sc1.transform (test)
                 output = sc2.fit_transform (output)
-
 
                 #Polynomial regression with degree 2
                 poly = PolynomialFeatures(degree=2)
@@ -126,21 +141,36 @@ class Regression:
                 clf = LinearRegression ()
                 clf.fit (X_, output)
 
-                test = np.array (test, ndmin=2)
-                test = sc1.transform (test)
-                t_output = np.array (t_output, ndmin=2)
+                # Predict
                 predict_ = poly.fit_transform (test)
-
                 out = clf.predict (predict_)
                 out = sc2.inverse_transform (out)
-                #print ("\t(Actual, Predicted) = ({}, {})".format (t_output, clf.predict (predict_)))
-                #print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
+
+                print ("\t(Actual, Predicted) = ({}, {})".format (t_output, out))
 
                 self.result[month].append ([float (t_output), float (out)])
                 self.error[month].append((abs(t_output - out) / t_output))
 
         return (self.result)
 
+    def dimensionality_reduction (self, train_matrix, test, dim):
+        """
+        Reduces the dimension of the input feature matrix.
+        -----------------------
+        Input:
+        in_matrix: input feature matrix
+        num: Number of features to be kept
+        ----------------------
+        Returns:
+        reduced feature matrix
+        """
+        
+        pca = PCA (dim)
+        out_matrix = pca.fit_transform (train_matrix)
+        test = pca.transform (test)
+        
+        return [out_matrix, test]
+        
     def map_crime_types (self):
         """
         Add all the weights related to the given primary crime type and return.
@@ -280,13 +310,15 @@ class Regression:
                     #Get top two similar communities for this community
                     index = self.n_similar_communities (sim_num, comm_no, arr)
 
-                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=self.attr_arr[year], crime_type=crime_type)
+                    #[temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=self.attr_arr[year], crime_type=crime_type)
+                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=-1, extra=self.attr_arr[year], crime_type=crime_type)
                     matrix.append (temp_matrix)
                     output.append (temp_output)
 
                 #Get the attributes for 2015
                 index = self.n_similar_communities (sim_num, comm_no, self.sim_arr[2015][month])
-                [test, t_output] = self.process_attributes (index, self.attr_arr[2015][month], month=month, extra=self.attr_arr[2015], crime_type=crime_type)
+                #[test, t_output] = self.process_attributes (index, self.attr_arr[2015][month], month=month, extra=self.attr_arr[2015], crime_type=crime_type)
+                [test, t_output] = self.process_attributes (index, self.attr_arr[2015][month], month=-1, extra=self.attr_arr[2015], crime_type=crime_type)
 
                 #Convet to np array
                 matrix = np.array (matrix)
@@ -462,7 +494,6 @@ class Regression:
     def print_results (self, init_path, method, crime_type):
         """ Print the output to a file. """
 
-
         np.set_printoptions(suppress=True)
 
         print (self.result)
@@ -476,7 +507,7 @@ class Regression:
             #np.squeeze (result)
             #print (result.shape)
 
-            path = init_path + method + "/" + crime_type
+            path = init_path + method + "2/" + crime_type
             os.makedirs (path, exist_ok=True)
             path = path + "/prediction_" + str (month) + ".csv"
 
@@ -541,11 +572,10 @@ def main ():
     """ Program starts executing. """
 
     #method = ["Poly", "Auto", "SVR"]
-    method = ["Auto", "SVR"]
-    #method = ["Poly"]
+    #method = ["Auto", "SVR"]
+    method = ["Poly"]
     init_path = "../../Data/Total_Data/Output/" 
 
-    for i in range (3):
-        reg = Regression (methods=method, init_path=init_path)
+    reg = Regression (methods=method, init_path=init_path, save=True)
 
 main ()

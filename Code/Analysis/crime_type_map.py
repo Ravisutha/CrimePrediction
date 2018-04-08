@@ -18,7 +18,7 @@ def map_codes (path, offset=10000):
     df = pd.read_csv (path)
     
     for i, row in df.iterrows():
-      index = i + 1 + offset
+      index = i + offset
       
       if row['PRIMARY DESCRIPTION'] not in map_code_des:
         map_code_des[row['PRIMARY DESCRIPTION']] = []
