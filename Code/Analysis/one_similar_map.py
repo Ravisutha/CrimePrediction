@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import csv
+import numpy as np
 from similarity import FindSimilarity
 
 class SimilarTree:
@@ -37,7 +38,7 @@ class SimilarTree:
             self.next_visit[i] = 0 
 
             for j in range (self.sim.shape[1]):
-                if (self.sim[i, j] > 0.1):
+                if (abs(self.sim[i, j]) > 0.1):
                     self.similarity[i].append (self.sim[i, j])     
                     self.children[i].append (j)     
 
@@ -55,7 +56,7 @@ class SimilarTree:
             if (self.visited[child] != 1 or self.next_visit[child] == 1):
                 c = self.Node (child)
                 #c.similar = root.similar * self.similarity[root.id][i] 
-                c.similar = root.similar * 0.9 
+                c.similar = root.similar * 0.9
                 #c.similar = self.similarity[root.id][i] * 0.9
                 self.total_sim[child] = c.similar
                 root.children.append (c)
@@ -99,6 +100,8 @@ def print_sim (root, one_similarity, second_time=False, old_dissimilar=[]):
 for year in range (2011, 2016):
     sim = FindSimilarity(year)
     [out_sim, dummy] = sim.get_similarity ()
+    out_sim = np.abs (out_sim)
+    print (out_sim)
     total_similarity = []
     #for year in range(2011, 2016):
     x = SimilarTree (out_sim, year)

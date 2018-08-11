@@ -144,7 +144,7 @@ class FindSimilarity:
 
         return (G)
 
-    def get_similarity (self, jaccard=False, adam=False, r_walk=True):
+    def get_similarity (self, jaccard=True, r_walk=False, adam=False):
         """ Returns similarity for loaded network. """
 
         if (self.load == False):

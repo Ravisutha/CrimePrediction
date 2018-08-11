@@ -25,11 +25,12 @@ import sys
 from path import Path
 from crime_type_map import map_codes
 import pickle
+import time
 
 class Regression:
     """ Use Regression to predict next crime pattern. """
     
-    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True):
+    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True, plot=True):
         
         self.once = 0
 
@@ -37,7 +38,7 @@ class Regression:
         self.map_crime_types ()
 
         # Get data
-        self._get_data (pick=True)
+        self._get_data (pick=False)
 
         # Decide on what to iterate
         if crime_types != -1:
@@ -57,6 +58,9 @@ class Regression:
 
                 if save:
                     self.print_results (init_path, method, crime_type)
+
+                if plot:
+                    self.plot_results (init_path, method, crime_type)
     
     def linear_regression (self, crime_type):
         """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
@@ -70,7 +74,7 @@ class Regression:
         attr_arr = self.attr_arr
 
         #Number of similar community data
-        sim_num = 3
+        sim_num = 1
 
 #        #Initialize the lists
 #        sim_arr = {}
@@ -284,7 +288,7 @@ class Regression:
                 self.result[month].append ([float (t_output[0]), float (out[0])])
                 self.error[month].append((abs(t_output - out) / t_output))
 
-    def regression_svr (self, crime_type, sim_num=3):
+    def regression_svr (self, crime_type, sim_num=1):
         """ Using libsvm in scklearn, preform regression. """
 
         #Output list
@@ -507,75 +511,93 @@ class Regression:
             #np.squeeze (result)
             #print (result.shape)
 
-            path = init_path + method + "2/" + crime_type
+            path = init_path + method + "1/" + crime_type
             os.makedirs (path, exist_ok=True)
             path = path + "/prediction_" + str (month) + ".csv"
 
             np.savetxt (path, self.result[month])
 
-    def plot_results (self, path, month=1):
+    def plot_results (self, init_path, method, crime_type):
         """ Plots the graph of actual and predicted crimes for given month"""
 
-        result = self.result[month]
+        #result = self.result[month]
 
         communities = []
         for i in range (77):
             communities.append (i)
 
-        actual = []
-        predict = []
-        for out in result:
-            actual.append (out[0])
-            predict.append (out[1])
+        #actual = []
+        #predict = []
+        #for out in result:
+        #    actual.append (out[0])
+        #    predict.append (out[1])
 
-        if (month == 1):
-            title = "Number of crimes for the month January in the 77 communities"
-        if (month == 2):
-            title = "Number of crimes for the month February in the 77 communities"
-        if (month == 3):
-            title = "Number of crimes for the month March in the 77 communities"
-        if (month == 4):
-            title = "Number of crimes for the month April in the 77 communities"
-        if (month == 5):
-            title = "Number of crimes for the month May in the 77 communities"
-        if (month == 6):
-            title = "Number of crimes for the month June in the 77 communities"
-        if (month == 7):
-            title = "Number of crimes for the month July in the 77 communities"
-        if (month == 8):
-            title = "Number of crimes for the month August in the 77 communities"
-        if (month == 9):
-            title = "Number of crimes for the month September in the 77 communities"
-        if (month == 10):
-            title = "Number of crimes for the month October in the 77 communities"
-        if (month == 11):
-            title = "Number of crimes for the month November in the 77 communities"
-        if (month == 12):
-            title = "Number of crimes for the month December in the 77 communities"
+#        if (month == 1):
+#            title = "Number of crimes for the month January in the 77 communities"
+#        if (month == 2):
+#            title = "Number of crimes for the month February in the 77 communities"
+#        if (month == 3):
+#            title = "Number of crimes for the month March in the 77 communities"
+#        if (month == 4):
+#            title = "Number of crimes for the month April in the 77 communities"
+#        if (month == 5):
+#            title = "Number of crimes for the month May in the 77 communities"
+#        if (month == 6):
+#            title = "Number of crimes for the month June in the 77 communities"
+#        if (month == 7):
+#            title = "Number of crimes for the month July in the 77 communities"
+#        if (month == 8):
+#            title = "Number of crimes for the month August in the 77 communities"
+#        if (month == 9):
+#            title = "Number of crimes for the month September in the 77 communities"
+#        if (month == 10):
+#            title = "Number of crimes for the month October in the 77 communities"
+#        if (month == 11):
+#            title = "Number of crimes for the month November in the 77 communities"
+#        if (month == 12):
+#           title = "Number of crimes for the month December in the 77 communities"
 
-        #print (title)
-        print("Result: {}".format(sum(self.error[month])))
-        plt.figure ()
-        #print (communities)
-        #print (actual)
-        #print (predict)
-        plt.plot (communities, actual, label="Actual number of crimes")
-        plt.plot (communities, predict, label="Predicted number of crimes")
-        #plt.title (title)
-        plt.xlabel("Cummunities")
-        plt.ylabel ("Number of crimes")
-        plt.legend ()
-        plt.savefig (path)
-    plt.show ()
+        for month in self.result:
+            path = init_path + method + "5/" + crime_type
+            os.makedirs (path, exist_ok=True)
+            path = path + "/prediction_" + str (month) + ".png"
+            print (path)
+
+
+            # Error
+            error = np.asarray (self.error[month]).reshape (-1)
+            print (error.shape)
+
+            #print (title)
+            print("Result: {}".format(sum(self.error[month])))
+            plt.figure ()
+            #print (communities)
+            #print (actual)
+            #print (predict)
+
+            # Correct
+            #plt.plot (communities, actual, label="Actual number of crimes")
+            #plt.plot (communities, predict, label="Predicted number of crimes")
+
+            # Plot error 
+            plt.bar (communities, error)
+
+            #plt.title (title)
+            plt.xlabel("Cummunities")
+            plt.ylabel ("Number of crimes")
+            plt.legend ()
+            plt.savefig (path, format='png')
+            #plt.show ()
 
 def main ():
     """ Program starts executing. """
 
-    #method = ["Poly", "Auto", "SVR"]
+    method = ["Poly", "Auto", "SVR"]
     #method = ["Auto", "SVR"]
-    method = ["Poly"]
+    #method = ["Poly"]
+    #method = ["SVR"]
     init_path = "../../Data/Total_Data/Output/"
 
-    reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True)
+    reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False)
 
 main ()
