@@ -25,7 +25,6 @@ def map_codes (path, offset=10000):
         
       map_code_des[row['PRIMARY DESCRIPTION']].append(index)
     
-    print (map_code_des)
     return (map_code_des)
 
     

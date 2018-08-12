@@ -171,62 +171,6 @@ if (__name__=='__main__'):
             print ("For year: {} and for the month {}".format (year, month))
             net = Build_Network ()
 
-            #net.load_network (year=year, month=month, connect=True, save=True)
             net.load_network (year=year, month=month)
             net.get_network ()
             net.get_attributes ()
-    #years = [2011, 2012, 2013, 2014, 2015]
-#    years = [2015]
-#
-#    path = Path ()
-#    for year in years:
-#        print ("For year: {}".format (year), end=' ')
-#        for month in range (1, 13):
-#            print ("and month: {}".format (month))
-#            print ("\t1. Creating network")
-#            net = Build_Network ()
-#
-#            #Get community and crime dictionary (Code: 10000)
-#            print ("\t2. Adding Crime Network")
-#            a = Crime_Network (path.get_path (year=year, month=month, type="crime"))
-#            comm_crime = a.get_network ()
-#            net.add_net (comm_crime, 'red', ('type', 'crime'))
-#
-#            #Get community and police station dictionary (Code: 30000)
-#            print ("\t3. Adding Police Network")
-#            p = Police_Network (path.get_path (year=year, month=month, type="police"), -1, 30000)
-#            comm_police = p.get_network ()
-#            net.add_net (comm_police, 'orange', ('type', 'police'))
-#
-#            #Get community and 311 service dictionary (Code: 40000 - 110000)
-#            print ("\t4. Adding 311 service Networks")
-#            p = ["sanity", "vehicles", "pot_holes", "lights_one", "lights_all", "lights_alley", "trees", "vacant"]
-#            community = [-5, -6, -6, -5, -5, -5, -5, -5]
-#            code = [40000, 50000, 60000, 70000, 80000, 90000, 100000, 110000]
-#
-#            for i, name in enumerate (p):
-#                print ("\t\t- Adding {} network".format (name))
-#                s = ServiceNetwork (path.get_path (year=year, month=month, type=name), community[i], code[i])
-#                comm_sanity = s.get_network ()
-#                net.add_net (comm_sanity, 'brown', ('type', name))
-#
-#            #Get community and library dictionary (Code: 120000)
-#            #print ("5. Adding Library Networks")
-#            #l = Library_Network (path.get_path (year=year, month=month, "library"), -1, 120000)
-#            #comm_library = l.get_network ()
-#            #net.add_net (comm_library, 'white', ('type', 'library'))
-#
-#            #Get community and school dictionary (Code: 130000)
-#            print ("\t6. Adding School Network")
-#            s = SchoolNetwork (path.get_path (year=year, month=month, type="school"), 130000)
-#            comm_school = s.get_network ()
-#            net.add_net (comm_school, 'violet', ('type', 'school'))
-#
-#            #Connect police and crime network
-#            print ("\t7. Connecting Police and Crime Network")
-#            pc = CrimePoliceNetwork (path.get_path (year=year, month=month, type="police_crime"))
-#            crime_police = pc.get_network ()
-#            net.add_net (crime_police)
-#
-#            print ("\t8. Writing to the file {}".format (path.get_path (year=year, month=month, type="output")))
-#            #net.write_file(path.get_path (year=year, month=month, type="output"))
