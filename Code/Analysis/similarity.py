@@ -144,13 +144,13 @@ class FindSimilarity:
 
         return (G)
 
-    def get_similarity (self, jaccard=True, r_walk=False, adam=False):
+    def get_similarity (self, jaccard=False, r_walk=True, adam=False):
         """ Returns similarity for loaded network. """
 
         if (self.load == False):
             print ("Please load the network first. Ex: similarity.load_data ()")
             return (-1)
-
+        
         if (jaccard == True or adam == True or r_walk == True):
             if (jaccard == True and adam == False and r_walk == False):
                 return ([self.jaccard_similarity(), self.G])
