@@ -24,7 +24,7 @@ conda env create -f crime_predict.yml
 
 ### Run prediction models
 ----
-The [Code](https://github.com/Ravisutha/CrimePrediction/tree/master/Code) directory contains code for handling dataset, creating network using networkx, analyzing the data (making predictions) and for visualizing the results. These are categorized into appropriate folders. To predict the number of crime for a given period, navigate to Analysis code and run the `predict.py` code.
+The [Code](https://github.com/Ravisutha/CrimePrediction/tree/master/Code) directory contains code for handling dataset, creating network using networkx, analyzing the data (making predictions) and for visualizing the results. These are categorized into appropriate folders. To predict the number of crime for a given period, navigate to [`Analysis`](https://github.com/Ravisutha/CrimePrediction/tree/master/Code/Analysis) directory and run the `predict.py` code.
 
 ```bash
 cd ./Code/Analysis
