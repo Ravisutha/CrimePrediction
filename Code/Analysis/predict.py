@@ -30,7 +30,7 @@ import time
 class Regression:
     """ Use Regression to predict next crime pattern. """
     
-    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True, plot=True):
+    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True, plot=True, sim_num=1):
         
         self.once = 0
 
@@ -38,7 +38,7 @@ class Regression:
         self.map_crime_types ()
 
         # Get data
-        self._get_data (pick=False)
+        self._get_data (pick=True)
 
         # Decide on what to iterate
         if crime_types != -1:
@@ -47,23 +47,87 @@ class Regression:
             itr = self.map_crime
 
         # For each crime type, predict the number of crimes
-        sim_num = 1
         for method in methods:
-            for crime_type in self.map_crime: 
+            for crime_type in self.map_crime:
                 if (method == "Poly"):
-                    self.linear_regression([crime_type],sim_num)
+                    self.linear_regression([crime_type], sim_num)
                 elif (method == "Auto"):
                     self.auto_regression ([crime_type])
                 else:
-                    self.regression_svr ([crime_type],sim_num)
+                    self.regression_svr ([crime_type], sim_num)
 
                 if save:
-                    self.print_results (init_path, method, crime_type)
+                    self.print_results (init_path, method, crime_type, sim_num)
 
                 if plot:
                     self.plot_results (init_path, method, crime_type)
     
+    def linear_regression (self, crime_type, sim_num=1):
+        """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
+        
+        #Output list
+        self.result = {}
+        self.error = {}
 
+        #Initialize the lists
+        sim_arr = self.sim_arr
+        attr_arr = self.attr_arr
+
+        #Loop over all year and months. Predict for 2015
+        for month in range (1, 13):
+            self.result[month] = []
+            self.error[month] = []
+
+            for comm_no in range (1, 78):
+                matrix = []
+                output = []
+
+                for year in range (2011, 2015):
+                    arr = sim_arr[year][month]
+                    attr = attr_arr[year][month]
+
+                    #Get top two similar communities for this community
+                    index = self.n_similar_communities (sim_num, comm_no, arr)
+
+                    #[temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=attr_arr[year], crime_type=crime_type)
+                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=-1, extra=attr_arr[year], crime_type=crime_type)
+                    matrix.append (temp_matrix)
+                    output.append (temp_output)
+
+                #Get the attributes for 2015
+                index = self.n_similar_communities (sim_num, comm_no, sim_arr[2015][month])
+                [test, t_output] = self.process_attributes (index, attr_arr[2015][month], month=-1, extra=attr_arr[2015], crime_type=crime_type)
+
+                #Convet to np array
+                matrix = np.array (matrix)
+                output = np.array (output)
+                test = np.array (test, ndmin=2)
+                t_output = np.array (t_output, ndmin=2)
+
+                #Normalize
+                sc1 = MinMaxScaler(feature_range=(0, 1))
+                sc2 = MinMaxScaler(feature_range=(0, 1))
+                matrix = sc1.fit_transform (matrix)
+                test = sc1.transform (test)
+                output = sc2.fit_transform (output)
+
+                #Polynomial regression with degree 2
+                poly = PolynomialFeatures(degree=2)
+                X_ = poly.fit_transform (matrix)
+
+                # Train
+                clf = LinearRegression ()
+                clf.fit (X_, output)
+
+                # Predict
+                predict_ = poly.fit_transform (test)
+                out = clf.predict (predict_)
+                out = sc2.inverse_transform (out)
+
+                self.result[month].append ([float (t_output), float (out)])
+                self.error[month].append((abs(t_output - out) / t_output))
+
+        return (self.result)
 
     def dimensionality_reduction (self, train_matrix, test, dim):
         """
@@ -125,133 +189,6 @@ class Regression:
 
         return (self.sim_arr, self.attr_arr)
 
-    def linear_regression (self, crime_type,sim_num = 1):
-        """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
-        
-        #Output list
-        self.result = {}
-        self.error = {}
-
-        #Initialize the lists
-        sim_arr = self.sim_arr
-        attr_arr = self.attr_arr
-
-        #Number of similar community data
-        #sim_num = 1
-
-        #Loop over all year and months. Predict for 2015
-        for month in range (1, 13):
-        #for month in range (1):
-            self.result[month] = []
-            self.error[month] = []
-
-            for comm_no in range (1, 78):
-                matrix = []
-                output = []
-
-                for year in range (2011, 2015):
-                    arr = sim_arr[year][month]
-                    attr = attr_arr[year][month]
-
-                    #Get top two similar communities for this community
-                    index = self.n_similar_communities (sim_num, comm_no, arr)
-                    #print(str(index) + " : " + str(comm_no))
-                    #index = [comm_no-1]
-
-                    #[temp_matrix, temp_output] = self.process_attributes (index, attr, month=month, extra=attr_arr[year], crime_type=crime_type)
-                    [temp_matrix, temp_output] = self.process_attributes (index, attr, month=-1, extra=attr_arr[year], crime_type=crime_type)
-                    matrix.append (temp_matrix)
-                    output.append (temp_output)
-
-                #Get the attributes for 2015
-                index = self.n_similar_communities (sim_num, comm_no, sim_arr[2015][month])
-                [test, t_output] = self.process_attributes (index, attr_arr[2015][month], month=-1, extra=attr_arr[2015], crime_type=crime_type)
-
-                #Convet to np array
-                matrix = np.array (matrix)
-                output = np.array (output)
-                test = np.array (test, ndmin=2)
-                t_output = np.array (t_output, ndmin=2)
-
-                #Normalize
-                sc1 = MinMaxScaler(feature_range=(0, 1))
-                sc2 = MinMaxScaler(feature_range=(0, 1))
-                matrix = sc1.fit_transform (matrix)
-                test = sc1.transform (test)
-                output = sc2.fit_transform (output)
-
-                print(matrix)
-                print(output)
-                input()
-                #Polynomial regression with degree 2
-                poly = PolynomialFeatures(degree=2)
-                X_ = poly.fit_transform (matrix)
-
-                # Train
-                clf = LinearRegression ()
-                clf.fit (X_, output)
-
-                # Predict
-                predict_ = poly.fit_transform (test)
-                out = clf.predict (predict_)
-                out = sc2.inverse_transform (out)
-
-                self.result[month].append ([float (t_output), float (out)])
-                self.error[month].append((abs(t_output - out) / t_output))
-
-        return (self.result)
-
-        #Saroj Dash: Function that would generate the baseline result.inpsired from auto regression function
-        def linear_regression2 (self, crime_type,sim_num = 1):
-        """ Returns auto regression output. """
-
-        #Output list
-        self.result = {}
-        self.error = {}
-
-        # Find the optimal lag
-        (train, test) = self._auto_regression_input (crime_type)
-
-        
-        #input()
-
-        # Train
-        for month in range (1, 13):
-            self.result[month] = []
-            self.error[month] = []
-
-            for community in range (1, 78):
-                train1 = np.array (train[community][month])
-                train1 = train1.reshape (-1, 1)
-                test1 = test[community][month]
-
-                print(train1)
-                #input()
-                # Autoregression
-                # model = AR(train1)
-                # max_lag = 1
-                # model_fit = model.fit(max_lag)
-
-                poly = PolynomialFeatures(degree=2)
-                X_ = poly.fit_transform (train1)
-
-                # Train
-                clf = LinearRegression ()
-                clf.fit (X_, output)
-
-                # Test
-                try:
-                    out = model_fit.predict(start=len(train1), end=len(train1)+len(test1)-1, dynamic=False)
-                except ValueError:
-                    print ("Something went wrong")
-                    out = [train1[-1]]
-                    continue
-
-                t_output = test1
-
-                self.result[month].append ([float (t_output[0]), float (out[0])])
-                self.error[month].append((abs(t_output - out) / t_output))
-
     def _auto_regression_input (self, crime_type):
         """ Find the optimal lag using auto-correlation. 
         Prameter:
@@ -290,9 +227,6 @@ class Regression:
         # Find the optimal lag
         (train, test) = self._auto_regression_input (crime_type)
 
-        
-        #input()
-
         # Train
         for month in range (1, 13):
             self.result[month] = []
@@ -303,9 +237,6 @@ class Regression:
                 train1 = train1.reshape (-1, 1)
                 test1 = test[community][month]
 
-                print("Autoregression")
-                print(train1)
-                input()
                 # Autoregression
                 model = AR(train1)
                 max_lag = 1
@@ -325,7 +256,7 @@ class Regression:
                 self.error[month].append((abs(t_output - out) / t_output))
 
     def regression_svr (self, crime_type, sim_num=1):
-        """ Using libsvm in scklearn, preform regression. """
+        """ Using libsvm in sklearn, preform regression. """
 
         #Output list
         self.result = {}
@@ -395,10 +326,7 @@ class Regression:
     def n_similar_communities (self, n, comm_no, arr):
         """ Returns top "n" similar community numbers. """
 
-        #print("n value in n_similar_communities " + str(n))
-        #n = 0
         #Sort and return n similar communities
-        
         index_no = comm_no - 1
         req_sim = arr[index_no, :]
 
@@ -409,7 +337,6 @@ class Regression:
             index[i] = idex + 1
 
         return (index[0:n])
-        #return (index[index_no])
 
     def process_attributes (self, index, attr, month=-1, extra=False, crime_type=["HOMICIDE"]):
         """ Convert attributes as inputs to linear regression.
@@ -422,8 +349,6 @@ class Regression:
 
         mat = []
         output = []
-        #print(len(index))
-
         for itr, i in enumerate (index):
             comm = i
 
@@ -436,82 +361,78 @@ class Regression:
                     for prev in range (1, month):
                         mat.append (self.add_weights (extra[prev]["crime"][comm], crime_type))
 
-            
-            # Number of Police Stations
+            #Number of Police Stations
             try:
                 police = len (attr["police"][comm])
             except KeyError:
                 police = 0
             mat.append (police)
 
-            # #Number of visitors
+            #Number of visitors
 
-            # #Sanity
-            # try:
-            #     sanity = attr["sanity"][comm][40000]
-            # except KeyError:
-            #     sanity = 0
-            # mat.append (sanity)
+            #Sanity
+            try:
+                sanity = attr["sanity"][comm][40000]
+            except KeyError:
+                sanity = 0
+            mat.append (sanity)
 
-            # #Vehicles
-            # try:
-            #     vehicles = attr["vehicles"][comm][50000]
-            # except KeyError:
-            #     vehicles = 0
-            # mat.append (vehicles)
+            #Vehicles
+            try:
+                vehicles = attr["vehicles"][comm][50000]
+            except KeyError:
+                vehicles = 0
+            mat.append (vehicles)
 
-            # #Pot holes
-            # try:
-            #     pot_holes = attr["pot_holes"][comm][60000]
-            # except KeyError:
-            #     pot_holes = 0
-            # mat.append (pot_holes)
+            #Pot holes
+            try:
+                pot_holes = attr["pot_holes"][comm][60000]
+            except KeyError:
+                pot_holes = 0
+            mat.append (pot_holes)
 
-            # #Lights one
-            # try:
-            #     light_1 = attr["lights_one"][comm][70000]
-            # except KeyError:
-            #     light_1 = 0
-            # mat.append (light_1)
+            #Lights one
+            try:
+                light_1 = attr["lights_one"][comm][70000]
+            except KeyError:
+                light_1 = 0
+            mat.append (light_1)
 
-            # #Lights all
-            # try:
-            #     light_2 = attr["lights_all"][comm][80000]
-            # except KeyError:
-            #     light_2 = 0
-            # mat.append (light_2)
+            #Lights all
+            try:
+                light_2 = attr["lights_all"][comm][80000]
+            except KeyError:
+                light_2 = 0
+            mat.append (light_2)
 
-            # #Lights alley
-            # try:
-            #     light_alley = attr["lights_alley"][comm][90000]
-            # except KeyError:
-            #     light_alley = 0
-            # mat.append (light_alley)
+            #Lights alley
+            try:
+                light_alley = attr["lights_alley"][comm][90000]
+            except KeyError:
+                light_alley = 0
+            mat.append (light_alley)
 
-            # #Trees
-            # try:
-            #     trees = attr["trees"][comm][100000]
-            # except KeyError:
-            #     trees = 0
-            # mat.append (trees)
+            #Trees
+            try:
+                trees = attr["trees"][comm][100000]
+            except KeyError:
+                trees = 0
+            mat.append (trees)
 
-            # #Vacant buildings
-            # try:
-            #     vacant = attr["vacant"][comm][110000]
-            # except KeyError:
-            #     vacant = 0
-            # mat.append (vacant)
+            #Vacant buildings
+            try:
+                vacant = attr["vacant"][comm][110000]
+            except KeyError:
+                vacant = 0
+            mat.append (vacant)
 
-            # #School
-            # try:
-            #     school = len (attr["school"][comm])
-            # except KeyError:
-            #     school = 0
-            # mat.append (school)
-            #print(mat)
-            #print(output)
+            #School
+            try:
+                school = len (attr["school"][comm])
+            except KeyError:
+                school = 0
+            mat.append (school)
 
-        
         return ([mat, output])
 
     def add_weights (self, in_dict, crime_types=["Full"]):
@@ -537,21 +458,19 @@ class Regression:
 
         return weights
 
-    def print_results (self, init_path, method, crime_type):
+    def print_results (self, init_path, method, crime_type, sim_num=1):
         """ Print the output to a file. """
 
         np.set_printoptions(suppress=True)
 
 
         for month in self.result:
-            path = init_path + method + "/"+ crime_type
+            path = init_path + method.replace(' ', '_') + str(sim_num) + "/" + crime_type
             os.makedirs (path, exist_ok=True)
             path = path + "/prediction_" + str (month) + ".csv"
-            #print ("Writing results into", path)
+            print ("Writing results into", path)
 
             np.savetxt (path, self.result[month])
-        
-        
 
 def main ():
     """ Program starts executing.
@@ -562,13 +481,10 @@ def main ():
          reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False)
     """
 
-    #method = ["Poly", "Auto", "SVR"]
-    #method = ["Auto"]
-    method = ["Poly"]
-
-    #init_path = "../../Data/Total_Data/Output/Only-Crime/"
-    #init_path = "/home/saroj/Documents/Data/Full-Crime/"
-    init_path = "/media/saroj/Work/Clemson Semesters/Dr.SafroResearch/Backup MY Code/MyRepositoyr/Chicago_Crime_Project - Copy/Data/Only-Crime/"
-    reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False)
+    sim_nums = [1, 3]
+    method = ["Poly", "Auto", "SVR"]
+    init_path = "../../Data/Total_Data/Output/"
+    for sim_num in sim_nums:
+        reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False, sim_num=sim_num)
 
 main ()
