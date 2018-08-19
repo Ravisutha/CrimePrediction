@@ -481,7 +481,7 @@ def main ():
          reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False)
     """
 
-    sim_nums = [1, 3]
+    sim_nums = [1]
     method = ["Poly", "Auto", "SVR"]
     init_path = "../../Data/Total_Data/Output/"
     for sim_num in sim_nums:
