@@ -30,7 +30,7 @@ import time
 class Regression:
     """ Use Regression to predict next crime pattern. """
     
-    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True, plot=True):
+    def __init__ (self, init_path, methods=["Poly"], crime_types=["HOMICIDE"], save=True, plot=True, sim_num=1):
         
         self.once = 0
 
@@ -38,7 +38,7 @@ class Regression:
         self.map_crime_types ()
 
         # Get data
-        self._get_data (pick=True)
+        self._get_data (pick=False)
 
         # Decide on what to iterate
         if crime_types != -1:
@@ -48,21 +48,21 @@ class Regression:
 
         # For each crime type, predict the number of crimes
         for method in methods:
-            for crime_type in self.map_crime: 
+            for crime_type in self.map_crime:
                 if (method == "Poly"):
-                    self.linear_regression([crime_type])
+                    self.linear_regression([crime_type], sim_num)
                 elif (method == "Auto"):
                     self.auto_regression ([crime_type])
                 else:
-                    self.regression_svr ([crime_type])
+                    self.regression_svr ([crime_type], sim_num)
 
                 if save:
-                    self.print_results (init_path, method, crime_type)
+                    self.print_results (init_path, method, crime_type, sim_num)
 
                 if plot:
                     self.plot_results (init_path, method, crime_type)
     
-    def linear_regression (self, crime_type):
+    def linear_regression (self, crime_type, sim_num=1):
         """ Perform linear regression on the given data. (\alpha1 * sim1 + \alpha2 * sim2 = totat_crime)"""
         
         #Output list
@@ -73,12 +73,8 @@ class Regression:
         sim_arr = self.sim_arr
         attr_arr = self.attr_arr
 
-        #Number of similar community data
-        sim_num = 1
-
         #Loop over all year and months. Predict for 2015
         for month in range (1, 13):
-        #for month in range (1):
             self.result[month] = []
             self.error[month] = []
 
@@ -260,7 +256,7 @@ class Regression:
                 self.error[month].append((abs(t_output - out) / t_output))
 
     def regression_svr (self, crime_type, sim_num=1):
-        """ Using libsvm in scklearn, preform regression. """
+        """ Using libsvm in sklearn, preform regression. """
 
         #Output list
         self.result = {}
@@ -462,14 +458,14 @@ class Regression:
 
         return weights
 
-    def print_results (self, init_path, method, crime_type):
+    def print_results (self, init_path, method, crime_type, sim_num=1):
         """ Print the output to a file. """
 
         np.set_printoptions(suppress=True)
 
 
         for month in self.result:
-            path = init_path + method + "1/" + crime_type
+            path = init_path + method.replace(' ', '_') + str(sim_num) + "/" + crime_type
             os.makedirs (path, exist_ok=True)
             path = path + "/prediction_" + str (month) + ".csv"
             print ("Writing results into", path)
@@ -485,8 +481,10 @@ def main ():
          reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False)
     """
 
+    sim_nums = [1, 3]
     method = ["Poly", "Auto", "SVR"]
     init_path = "../../Data/Total_Data/Output/"
-    reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False)
+    for sim_num in sim_nums:
+        reg = Regression (methods=method, init_path=init_path, crime_types=-1, save=True, plot=False, sim_num=sim_num)
 
 main ()
