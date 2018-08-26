@@ -1,10 +1,8 @@
 # Chicago Crime Prediction
------
 The objective is to predict the number of crimes for all types of crimes listed in the [City of Chicago](https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-present/ijzp-q8t2) dataset.
 
 
 ## Getting Started
------
 To reproduce our result, start by cloning this repo.
 ```bash
 git clone https://github.com/Ravisutha/CrimePrediction.git
